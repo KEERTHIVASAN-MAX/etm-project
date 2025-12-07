@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Owners collection - allow public read (for custom login)
+    match /owners/{ownerId} {
+      allow read: if true; // Public read for login verification
+      allow write: if true; // Allow writes (for registration/updates)
+    }
+    
+    // Bills collection - allow read/write (uses custom auth via localStorage)
+    match /bills/{billId} {
+      allow read, write: if true;
+    }
+    
+    // Customers collection - allow read/write
+    match /customers/{customerId} {
+      allow read, write: if true;
+    }
+    
+    // Staff collection - allow read/write
+    match /staff/{staffId} {
+      allow read, write: if true;
+    }
+    
+    // Prices collection - allow read/write
+    match /prices/{priceId} {
+      allow read, write: if true;
+    }
+
+    // Settings collection - allow read/write (for global settings like prices)
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

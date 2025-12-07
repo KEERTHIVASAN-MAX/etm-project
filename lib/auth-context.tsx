@@ -1,0 +1,99 @@
+"use client";
+
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth } from "./firebase-config";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+
+interface AuthContextType {
+  user: any;
+  uid: string | null;
+  role: "owner" | "staff" | null;
+  userName: string | null;
+  loading: boolean;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any>(null);
+  const [uid, setUid] = useState<string | null>(null);
+  const [role, setRole] = useState<"owner" | "staff" | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        console.log("✅ Firebase User restored:", firebaseUser.email);
+        setUser(firebaseUser);
+        setUid(firebaseUser.uid);
+        setRole("owner");
+        setUserName(firebaseUser.displayName || "Owner");
+
+        localStorage.setItem("uid", firebaseUser.uid);
+        localStorage.setItem("role", "owner");
+        localStorage.setItem("userName", firebaseUser.displayName || "Owner");
+
+        setLoading(false);
+      } else {
+        const storedRole = localStorage.getItem("role");
+
+        if (storedRole === "staff") {
+          const storedUid = localStorage.getItem("uid");
+          const storedName = localStorage.getItem("userName");
+
+          console.log("✅ Staff session restored from localStorage");
+          setUid(storedUid);
+          setRole("staff");
+          setUserName(storedName);
+          setUser({ uid: storedUid, role: "staff" });
+        } else {
+          console.log("❌ No active session");
+          setUser(null);
+          setUid(null);
+          setRole(null);
+          setUserName(null);
+        }
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const logout = async () => {
+    try {
+      if (role === "owner") {
+        await signOut(auth);
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.clear();
+      }
+
+      setUser(null);
+      setUid(null);
+      setRole(null);
+      setUserName(null);
+
+      window.location.reload();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{ user, uid, role, userName, loading, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+}

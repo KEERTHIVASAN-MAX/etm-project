@@ -1,0 +1,32 @@
+{
+    "name": "Spinz Soda ETM",
+    "short_name": "Spinz ETM",
+    "description": "Electronic Ticketing Machine for Spinz Soda - Billing & Customer Management",
+    "theme_color": "#2563eb",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "/spinz-logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/spinz-logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "business",
+        "productivity",
+        "finance"
+    ],
+    "dir": "ltr",
+    "lang": "en-US"
+}
