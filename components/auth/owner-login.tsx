@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
   signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase-config";
 import { Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
@@ -17,6 +18,8 @@ interface OwnerLoginProps {
   onBack?: () => void;
 }
 
+const OWNER_EMAIL = "spinzbeverage@gmail.com";
+
 export function OwnerLogin({ onBack }: OwnerLoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,50 +27,12 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
-  // Handle redirect result from Google Sign-In
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        console.log("Checking for redirect result...");
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Redirect result user:", result.user.email);
-          if (result.user.email !== "spinzbeverage@gmail.com") {
-            await auth.signOut();
-            toast.error("Access Denied: You must use the 'spinzbeverage@gmail.com' account.");
-            return;
-          }
-
-          // Explicitly save to localStorage for mobile persistence
-          localStorage.setItem("uid", result.user.uid);
-          localStorage.setItem("role", "owner");
-          localStorage.setItem("userName", result.user.displayName || "Owner");
-
-          console.log("✅ Google login successful, session saved");
-          toast.success("Google login successful!");
-
-          // Give Firebase time to update auth state before reload
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 500);
-        } else {
-          console.log("No redirect result found");
-        }
-      } catch (error: any) {
-        console.error("Redirect result error:", error);
-        if (error.code !== 'auth/popup-closed-by-user') {
-          toast.error("Google login failed: " + error.message);
-        }
-      }
-    };
-    handleRedirectResult();
-  }, []);
-
+  // ✅ Email / Password login
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (email.toLowerCase() !== "spinzbeverage@gmail.com") {
-      toast.error("Access Denied: Only the owner (spinzbeverage@gmail.com) can log in.");
+    if (email.toLowerCase() !== OWNER_EMAIL) {
+      toast.error("Only owner can log in");
       return;
     }
 
@@ -75,44 +40,46 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Welcome back, Owner!");
-      // No need to reload, AuthContext will update and redirect
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error("Login failed: " + error.message);
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Google login
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      // Use redirect instead of popup for mobile compatibility
-      await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-      console.error("Google login error:", error);
-      toast.error("Google login failed: " + error.message);
+      const result = await signInWithPopup(auth, provider);
+      
+      if (result.user.email?.toLowerCase() !== OWNER_EMAIL) {
+        await auth.signOut();
+        toast.error("Only owner can log in");
+        return;
+      }
+      
+      toast.success("Welcome back, Owner!");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Forgot password
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail) {
-      toast.error("Please enter your email");
-      return;
-    }
+    if (!resetEmail) return toast.error("Enter email");
+
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, resetEmail);
-      toast.success("Password reset link sent to " + resetEmail);
+      toast.success("Reset link sent");
       setShowForgotPassword(false);
-    } catch (error: any) {
-      toast.error("Failed to send reset email: " + error.message);
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -120,120 +87,137 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
 
   if (showForgotPassword) {
     return (
-      <Card className="p-6 w-full max-w-md mx-auto">
-        <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
-        <form onSubmit={handleForgotPassword} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+      <Card className="p-8 w-full max-w-md mx-auto relative overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl">
+        <div className="absolute top-0 left-[-20%] w-[140%] h-32 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-[60px] pointer-events-none" />
+        
+        <div className="relative z-10">
+          <h2 className="text-3xl font-extrabold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+            Reset Password
+          </h2>
+          <p className="text-center text-sm text-muted-foreground mb-8">
+            We'll send you instructions securely
+          </p>
+
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-indigo-400 transition-colors duration-300" />
               <Input
                 type="email"
-                placeholder="Enter your registered email"
-                className="pl-10"
+                placeholder="Owner Email"
+                className="pl-12 h-14 bg-black/20 border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/20 rounded-2xl transition-all duration-300"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 required
               />
             </div>
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-            Send Reset Link
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            onClick={() => setShowForgotPassword(false)}
-          >
-            Back to Login
-          </Button>
-        </form>
+
+            <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 font-semibold text-lg border-0" disabled={loading}>
+              {loading && <Loader2 className="mr-2 animate-spin" />}
+              Send Reset Link
+            </Button>
+
+            <Button
+              variant="ghost"
+              type="button"
+              className="w-full h-12 rounded-2xl hover:bg-white/5 transition-all text-muted-foreground hover:text-foreground"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to login
+            </Button>
+          </form>
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6 w-full max-w-md mx-auto">
-      <div className="flex items-center mb-6">
-        {onBack && (
-          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        <div className="flex-1 text-center">
-          <h2 className="text-2xl font-bold">Owner Login</h2>
-          <p className="text-sm text-gray-500">Manage your business securely</p>
+    <Card className="p-8 w-full max-w-md mx-auto relative overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl transition-all duration-500">
+      <div className="absolute top-[-10%] left-[-20%] w-[140%] h-48 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-cyan-500/20 blur-[60px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-20%] w-[100%] h-48 bg-gradient-to-tl from-cyan-500/10 to-transparent blur-[60px] pointer-events-none" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center mb-8">
+          {onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 rounded-full hover:bg-white/10 transition-colors">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="flex-1 text-center pr-8 sm:pr-0">
+            <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+              Welcome Back
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 font-medium">
+              Secure Owner Dashboard Access
+            </p>
+          </div>
         </div>
-      </div>
 
-      <form onSubmit={handleEmailLogin} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Email Address</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <form onSubmit={handleEmailLogin} className="space-y-5">
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors duration-300 text-muted-foreground" />
             <Input
               type="email"
-              placeholder="spinzbeverage@gmail.com"
-              className="pl-10"
+              placeholder="Owner Email"
+              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 placeholder:text-muted-foreground/50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Password</label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+
+          <div className="relative group">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors duration-300 text-muted-foreground" />
             <Input
               type="password"
-              placeholder="Enter your password"
-              className="pl-10"
+              placeholder="Password"
+              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 placeholder:text-muted-foreground/50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-        </div>
 
-        <div className="flex justify-end">
-          <button
+          <div className="flex items-center justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline transition-all"
+            >
+              Recover Password?
+            </button>
+          </div>
+
+          <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 font-bold text-[16px] tracking-wide border-0 mt-2" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            Sign In Securely
+          </Button>
+
+          <div className="relative my-6 flex items-center py-2">
+            <div className="flex-grow border-t border-white/10"></div>
+            <span className="flex-shrink-0 mx-4 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              Or Connect With
+            </span>
+            <div className="flex-grow border-t border-white/10"></div>
+          </div>
+
+          <Button
             type="button"
-            onClick={() => setShowForgotPassword(true)}
-            className="text-sm text-primary hover:underline"
+            variant="outline"
+            className="w-full h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-sm font-medium text-[15px]"
+            onClick={handleGoogleLogin}
+            disabled={loading}
           >
-            Forgot Password?
-          </button>
-        </div>
-
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? <Loader2 className="animate-spin mr-2" /> : "Login"}
-        </Button>
-      </form>
-
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-        </div>
+            {loading ? (
+               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <svg className="h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+              </svg>
+            )}
+            Google Authorization
+          </Button>
+        </form>
       </div>
-
-      <Button
-        variant="outline"
-        type="button"
-        className="w-full"
-        onClick={handleGoogleLogin}
-        disabled={loading}
-      >
-        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-          <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-        </svg>
-        Google
-      </Button>
     </Card>
   );
 }

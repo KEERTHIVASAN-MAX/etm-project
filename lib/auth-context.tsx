@@ -23,7 +23,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let authResolved = false;
+
+    // Safety fallback: if Firebase hangs, force loading to false after 2 seconds
+    const fallbackTimer = setTimeout(() => {
+      if (!authResolved) {
+        console.warn("⚠️ Firebase Auth timed out. Falling back to localStorage.");
+        const storedRole = localStorage.getItem("role");
+        if (storedRole === "staff") {
+          const storedUid = localStorage.getItem("uid");
+          const storedName = localStorage.getItem("userName");
+          setUid(storedUid);
+          setRole("staff");
+          setUserName(storedName);
+          setUser({ uid: storedUid, role: "staff" });
+        }
+        setLoading(false);
+      }
+    }, 2000);
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      authResolved = true;
+      clearTimeout(fallbackTimer);
+
       if (firebaseUser) {
         console.log("✅ Firebase User restored:", firebaseUser.email);
         setUser(firebaseUser);
@@ -34,8 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("uid", firebaseUser.uid);
         localStorage.setItem("role", "owner");
         localStorage.setItem("userName", firebaseUser.displayName || "Owner");
-
-        setLoading(false);
       } else {
         const storedRole = localStorage.getItem("role");
 
@@ -55,11 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setRole(null);
           setUserName(null);
         }
-        setLoading(false);
       }
+      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(fallbackTimer);
+      unsubscribe();
+    };
   }, []);
 
   const logout = async () => {

@@ -25,6 +25,15 @@ export function Dashboard({ role, userName, onLogout }: DashboardProps) {
   const [currentPage, setCurrentPage] = useState("home");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Listen for navigation events from other components
+  useEffect(() => {
+    const handleNavigate = (e: any) => {
+      if (e.detail) setCurrentPage(e.detail);
+    };
+    window.addEventListener('navigate', handleNavigate);
+    return () => window.removeEventListener('navigate', handleNavigate);
+  }, []);
+
   // Run automatic cleanup on dashboard mount
   useEffect(() => {
     runAutoCleanup();
@@ -49,7 +58,7 @@ export function Dashboard({ role, userName, onLogout }: DashboardProps) {
       case "invoice-details":
         return <InvoiceDetailsPage />;
       case "payment-tracking":
-        return role === "owner" ? <PaymentTrackingPage /> : <p>Access Denied</p>;
+        return <PaymentTrackingPage />;
       default:
         return <DashboardHome role={role} />;
     }

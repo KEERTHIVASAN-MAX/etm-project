@@ -1,4 +1,4 @@
-﻿import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
@@ -25,11 +25,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Set auth persistence to LOCAL for mobile compatibility
+/*
 if (typeof window !== "undefined") {
     setPersistence(auth, browserLocalPersistence).catch((error) => {
         console.error("Failed to set auth persistence:", error);
     });
 }
+*/
 
 let analytics;
 if (typeof window !== "undefined") {

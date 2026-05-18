@@ -2,17 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  LogOut,
-  ShoppingCart,
-  Users2,
-  CreditCard,
-  Wallet,
-} from "lucide-react";
+import { Home } from "lucide-react";
+import { FileText } from "lucide-react";
+import { Users } from "lucide-react";
+import { Settings } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
+import { Users2 } from "lucide-react";
+import { CreditCard } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 interface SidebarProps {
   role: "owner" | "staff";
@@ -47,7 +45,7 @@ export function Sidebar({
       id: "payment-tracking",
       label: "Payments",
       icon: Wallet,
-      show: role === "owner",
+      show: true,
     },
     {
       id: "settings",
