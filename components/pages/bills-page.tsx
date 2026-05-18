@@ -296,13 +296,52 @@ export function BillsPage() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const stats = filteredBills.reduce((acc, bill) => {
-        acc.total += bill.total;
-        acc.paid += bill.paidAmount || 0;
-        if (bill.status === "pending") acc.pending += bill.pendingAmount;
-        if (bill.status === "overdue") acc.overdue += bill.pendingAmount;
-        return acc;
-    }, { total: 0, paid: 0, pending: 0, overdue: 0 });
+    let totalSales = 0;
+    let cashCollected = 0;
+    let pendingDue = 0;
+    let plainSodaQty = 0;
+    let colorSodaQty = 0;
+    let goliSodaQty = 0;
+    let shopBillsCount = 0;
+    let barBillsCount = 0;
+
+    filteredBills.forEach((bill) => {
+        totalSales += bill.total;
+        cashCollected += bill.paidAmount || 0;
+        if (bill.status === "pending" || bill.status === "overdue") pendingDue += bill.pendingAmount;
+
+        bill.items.forEach((item) => {
+            const type = item.type.toLowerCase();
+            if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                plainSodaQty += item.quantity;
+            } else if (type.includes("color")) {
+                colorSodaQty += item.quantity;
+            } else if (type.includes("goli")) {
+                goliSodaQty += item.quantity;
+            }
+        });
+
+        if (bill.priceCategory === "bar") {
+            barBillsCount++;
+        } else if (bill.priceCategory === "shop") {
+            shopBillsCount++;
+        } else {
+            // Heuristic fallback for older bills
+            let isBar = false;
+            for (const item of bill.items) {
+                const type = item.type.toLowerCase();
+                if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                    if (item.price === 15) { isBar = true; break; }
+                } else if (type.includes("color")) {
+                    if (item.price === 20) { isBar = true; break; }
+                } else if (type.includes("goli")) {
+                    if (item.price === 25) { isBar = true; break; }
+                }
+            }
+            if (isBar) barBillsCount++;
+            else shopBillsCount++;
+        }
+    });
 
     printWindow.document.write(`
       <html>
@@ -314,6 +353,7 @@ export function BillsPage() {
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { text-align: left; padding: 5px; border-bottom: 1px dashed #ccc; }
             .right { text-align: right; }
+            .section-header { font-weight: bold; padding-top: 10px; border-bottom: 2px solid #ccc; }
           </style>
         </head>
         <body>
@@ -322,10 +362,20 @@ export function BillsPage() {
           <p>Date: ${new Date(selectedDate).toLocaleDateString('en-IN')}</p>
           <hr/>
           <table>
+            <tr><td colspan="2" class="section-header">BILL COUNTS</td></tr>
             <tr><td>Total Bills:</td><td class="right">${filteredBills.length}</td></tr>
-            <tr><td>Total Sales:</td><td class="right">₹${stats.total}</td></tr>
-            <tr><td>Cash Collected:</td><td class="right">₹${stats.paid}</td></tr>
-            <tr><td>Pending Due:</td><td class="right">₹${stats.pending}</td></tr>
+            <tr><td>Shop Bills:</td><td class="right">${shopBillsCount}</td></tr>
+            <tr><td>Bar Bills:</td><td class="right">${barBillsCount}</td></tr>
+            
+            <tr><td colspan="2" class="section-header">ITEMS SOLD</td></tr>
+            <tr><td>Plain Soda:</td><td class="right">${plainSodaQty}</td></tr>
+            <tr><td>Color Soda:</td><td class="right">${colorSodaQty}</td></tr>
+            <tr><td>Goli Soda:</td><td class="right">${goliSodaQty}</td></tr>
+            
+            <tr><td colspan="2" class="section-header">FINANCIAL SUMMARY</td></tr>
+            <tr><td>Total Sales:</td><td class="right">₹${totalSales}</td></tr>
+            <tr><td>Cash Collected:</td><td class="right">₹${cashCollected}</td></tr>
+            <tr><td>Pending Due:</td><td class="right">₹${pendingDue}</td></tr>
           </table>
           <hr/>
           <p>Report Generated: ${new Date().toLocaleTimeString('en-IN')}</p>
@@ -335,6 +385,106 @@ export function BillsPage() {
     printWindow.document.close();
     printWindow.print();
   };
+
+  /* 🔵 Bluetooth Daily Collection Print */
+  const handleBluetoothPrintDailyCollection = async () => {
+    try {
+        const nav = navigator as any;
+        const device = await nav.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000fee7-0000-1000-8000-00805f9b34fb']
+        });
+
+        const server = await device.gatt.connect();
+        const services = await server.getPrimaryServices();
+        let char = null;
+        for (const s of services) {
+            const chars = await s.getCharacteristics();
+            for (const c of chars) {
+                if (c.properties.write || c.properties.writeWithoutResponse) { char = c; break; }
+            }
+            if (char) break;
+        }
+
+        if (!char) throw new Error("No characteristic");
+
+        // Calculations
+        let totalSales = 0;
+        let cashCollected = 0;
+        let pendingDue = 0;
+        let plainSodaQty = 0;
+        let colorSodaQty = 0;
+        let goliSodaQty = 0;
+        let shopBillsCount = 0;
+        let barBillsCount = 0;
+
+        filteredBills.forEach((bill) => {
+            totalSales += bill.total;
+            cashCollected += bill.paidAmount || 0;
+            if (bill.status === "pending" || bill.status === "overdue") pendingDue += bill.pendingAmount;
+
+            bill.items.forEach((item) => {
+                const type = item.type.toLowerCase();
+                if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                    plainSodaQty += item.quantity;
+                } else if (type.includes("color")) {
+                    colorSodaQty += item.quantity;
+                } else if (type.includes("goli")) {
+                    goliSodaQty += item.quantity;
+                }
+            });
+
+            if (bill.priceCategory === "bar") {
+                barBillsCount++;
+            } else if (bill.priceCategory === "shop") {
+                shopBillsCount++;
+            } else {
+                let isBar = false;
+                for (const item of bill.items) {
+                    const type = item.type.toLowerCase();
+                    if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                        if (item.price === 15) { isBar = true; break; }
+                    } else if (type.includes("color")) {
+                        if (item.price === 20) { isBar = true; break; }
+                    } else if (type.includes("goli")) {
+                        if (item.price === 25) { isBar = true; break; }
+                    }
+                }
+                if (isBar) barBillsCount++;
+                else shopBillsCount++;
+            }
+        });
+
+        let text = "\x1B\x40\x1B\x61\x01SPINZ SODA\nDaily Collection Report\n--------------------------------\n";
+        text += `\x1B\x61\x00Date: ${new Date(selectedDate).toLocaleDateString('en-IN')}\n`;
+        text += `--------------------------------\n`;
+        text += `Total Bills:    ${filteredBills.length}\n`;
+        text += `Shop Bills:     ${shopBillsCount}\n`;
+        text += `Bar Bills:      ${barBillsCount}\n`;
+        text += `--------------------------------\n`;
+        text += `Plain Soda:     ${plainSodaQty}\n`;
+        text += `Color Soda:     ${colorSodaQty}\n`;
+        text += `Goli Soda:      ${goliSodaQty}\n`;
+        text += `--------------------------------\n`;
+        text += `Total Sales:    Rs.${totalSales}\n`;
+        text += `Cash Collected: Rs.${cashCollected}\n`;
+        text += `Pending Due:    Rs.${pendingDue}\n`;
+        text += `--------------------------------\n`;
+        text += `\x1B\x61\x01Report Generated:\n${new Date().toLocaleTimeString('en-IN')}\n\n\n\n\n`;
+
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        for (let i = 0; i < data.length; i += 100) {
+            await char.writeValue(data.slice(i, i + 100));
+            await new Promise(r => setTimeout(r, 50));
+        }
+        toast.success("Printed Daily Collection successfully via Bluetooth!");
+        device.gatt.disconnect();
+    } catch (e: any) {
+        toast.error("Bluetooth Error");
+    }
+  };
+
 
   /* -----------------------------------------------
    🖥 UI
@@ -363,6 +513,9 @@ export function BillsPage() {
               <>
                 <Button onClick={handlePrintDailyCollection} variant="outline" className="flex items-center gap-2 border-primary/20 text-primary">
                     <Printer size={16} /> Print Collection
+                </Button>
+                <Button onClick={handleBluetoothPrintDailyCollection} variant="outline" className="flex items-center gap-2 border-primary/20 text-blue-600">
+                    <Bluetooth size={16} /> BT Print Collection
                 </Button>
                 <Button onClick={handleDownloadCSV} className="bg-accent hover:bg-accent-light text-primary-dark flex items-center gap-2">
                     <Download size={18} />

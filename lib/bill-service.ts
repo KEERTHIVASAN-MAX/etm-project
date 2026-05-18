@@ -32,6 +32,7 @@ export interface Bill {
     createdBy?: string;
     createdByName?: string;
     isDeleted?: boolean;
+    priceCategory?: "shop" | "bar";
 }
 
 export async function addBill(billData: Omit<Bill, "id">): Promise<Bill> {

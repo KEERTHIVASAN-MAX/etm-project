@@ -236,6 +236,7 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
                 advanceAmount: advance,
                 selectedQr: selectedQr,
                 status: finalStatus,
+                priceCategory,
             });
 
             // Save customer if name or phone was provided
