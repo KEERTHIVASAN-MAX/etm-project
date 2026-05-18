@@ -299,10 +299,17 @@ export function BillsPage() {
     let totalSales = 0;
     let cashCollected = 0;
     let pendingDue = 0;
-    let plainSodaQty = 0;
-    let colorSodaQty = 0;
-    let goliSodaQty = 0;
+
+    let shopPlainSodaQty = 0;
+    let shopColorSodaQty = 0;
+    let shopGoliSodaQty = 0;
+    let shopTotalAmount = 0;
     let shopBillsCount = 0;
+
+    let barPlainSodaQty = 0;
+    let barColorSodaQty = 0;
+    let barGoliSodaQty = 0;
+    let barTotalAmount = 0;
     let barBillsCount = 0;
 
     filteredBills.forEach((bill) => {
@@ -310,24 +317,13 @@ export function BillsPage() {
         cashCollected += bill.paidAmount || 0;
         if (bill.status === "pending" || bill.status === "overdue") pendingDue += bill.pendingAmount;
 
-        bill.items.forEach((item) => {
-            const type = item.type.toLowerCase();
-            if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
-                plainSodaQty += item.quantity;
-            } else if (type.includes("color")) {
-                colorSodaQty += item.quantity;
-            } else if (type.includes("goli")) {
-                goliSodaQty += item.quantity;
-            }
-        });
-
+        let isBar = false;
         if (bill.priceCategory === "bar") {
-            barBillsCount++;
+            isBar = true;
         } else if (bill.priceCategory === "shop") {
-            shopBillsCount++;
+            isBar = false;
         } else {
             // Heuristic fallback for older bills
-            let isBar = false;
             for (const item of bill.items) {
                 const type = item.type.toLowerCase();
                 if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
@@ -338,8 +334,34 @@ export function BillsPage() {
                     if (item.price === 25) { isBar = true; break; }
                 }
             }
-            if (isBar) barBillsCount++;
-            else shopBillsCount++;
+        }
+
+        if (isBar) {
+            barBillsCount++;
+            barTotalAmount += bill.total;
+            bill.items.forEach((item) => {
+                const type = item.type.toLowerCase();
+                if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                    barPlainSodaQty += item.quantity;
+                } else if (type.includes("color")) {
+                    barColorSodaQty += item.quantity;
+                } else if (type.includes("goli")) {
+                    barGoliSodaQty += item.quantity;
+                }
+            });
+        } else {
+            shopBillsCount++;
+            shopTotalAmount += bill.total;
+            bill.items.forEach((item) => {
+                const type = item.type.toLowerCase();
+                if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                    shopPlainSodaQty += item.quantity;
+                } else if (type.includes("color")) {
+                    shopColorSodaQty += item.quantity;
+                } else if (type.includes("goli")) {
+                    shopGoliSodaQty += item.quantity;
+                }
+            });
         }
     });
 
@@ -353,7 +375,7 @@ export function BillsPage() {
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { text-align: left; padding: 5px; border-bottom: 1px dashed #ccc; }
             .right { text-align: right; }
-            .section-header { font-weight: bold; padding-top: 10px; border-bottom: 2px solid #ccc; }
+            .section-header { font-weight: bold; padding-top: 10px; border-bottom: 2px solid #ccc; text-transform: uppercase; color: #333; }
           </style>
         </head>
         <body>
@@ -362,17 +384,24 @@ export function BillsPage() {
           <p>Date: ${new Date(selectedDate).toLocaleDateString('en-IN')}</p>
           <hr/>
           <table>
-            <tr><td colspan="2" class="section-header">BILL COUNTS</td></tr>
+            <tr><td colspan="2" class="section-header">Overall Summary</td></tr>
             <tr><td>Total Bills:</td><td class="right">${filteredBills.length}</td></tr>
-            <tr><td>Shop Bills:</td><td class="right">${shopBillsCount}</td></tr>
-            <tr><td>Bar Bills:</td><td class="right">${barBillsCount}</td></tr>
             
-            <tr><td colspan="2" class="section-header">ITEMS SOLD</td></tr>
-            <tr><td>Plain Soda:</td><td class="right">${plainSodaQty}</td></tr>
-            <tr><td>Color Soda:</td><td class="right">${colorSodaQty}</td></tr>
-            <tr><td>Goli Soda:</td><td class="right">${goliSodaQty}</td></tr>
+            <tr><td colspan="2" class="section-header">Shop Bills Summary</td></tr>
+            <tr><td>Bills Count:</td><td class="right">${shopBillsCount}</td></tr>
+            <tr><td>Plain Soda:</td><td class="right">${shopPlainSodaQty}</td></tr>
+            <tr><td>Color Soda:</td><td class="right">${shopColorSodaQty}</td></tr>
+            <tr><td>Goli Soda:</td><td class="right">${shopGoliSodaQty}</td></tr>
+            <tr><td>Total Earned:</td><td class="right">₹${shopTotalAmount}</td></tr>
             
-            <tr><td colspan="2" class="section-header">FINANCIAL SUMMARY</td></tr>
+            <tr><td colspan="2" class="section-header">Bar Bills Summary</td></tr>
+            <tr><td>Bills Count:</td><td class="right">${barBillsCount}</td></tr>
+            <tr><td>Plain Soda:</td><td class="right">${barPlainSodaQty}</td></tr>
+            <tr><td>Color Soda:</td><td class="right">${barColorSodaQty}</td></tr>
+            <tr><td>Goli Soda:</td><td class="right">${barGoliSodaQty}</td></tr>
+            <tr><td>Total Earned:</td><td class="right">₹${barTotalAmount}</td></tr>
+            
+            <tr><td colspan="2" class="section-header">Financial Summary</td></tr>
             <tr><td>Total Sales:</td><td class="right">₹${totalSales}</td></tr>
             <tr><td>Cash Collected:</td><td class="right">₹${cashCollected}</td></tr>
             <tr><td>Pending Due:</td><td class="right">₹${pendingDue}</td></tr>
@@ -412,10 +441,17 @@ export function BillsPage() {
         let totalSales = 0;
         let cashCollected = 0;
         let pendingDue = 0;
-        let plainSodaQty = 0;
-        let colorSodaQty = 0;
-        let goliSodaQty = 0;
+
+        let shopPlainSodaQty = 0;
+        let shopColorSodaQty = 0;
+        let shopGoliSodaQty = 0;
+        let shopTotalAmount = 0;
         let shopBillsCount = 0;
+
+        let barPlainSodaQty = 0;
+        let barColorSodaQty = 0;
+        let barGoliSodaQty = 0;
+        let barTotalAmount = 0;
         let barBillsCount = 0;
 
         filteredBills.forEach((bill) => {
@@ -423,23 +459,13 @@ export function BillsPage() {
             cashCollected += bill.paidAmount || 0;
             if (bill.status === "pending" || bill.status === "overdue") pendingDue += bill.pendingAmount;
 
-            bill.items.forEach((item) => {
-                const type = item.type.toLowerCase();
-                if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
-                    plainSodaQty += item.quantity;
-                } else if (type.includes("color")) {
-                    colorSodaQty += item.quantity;
-                } else if (type.includes("goli")) {
-                    goliSodaQty += item.quantity;
-                }
-            });
-
+            let isBar = false;
             if (bill.priceCategory === "bar") {
-                barBillsCount++;
+                isBar = true;
             } else if (bill.priceCategory === "shop") {
-                shopBillsCount++;
+                isBar = false;
             } else {
-                let isBar = false;
+                // Heuristic fallback for older bills
                 for (const item of bill.items) {
                     const type = item.type.toLowerCase();
                     if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
@@ -450,8 +476,34 @@ export function BillsPage() {
                         if (item.price === 25) { isBar = true; break; }
                     }
                 }
-                if (isBar) barBillsCount++;
-                else shopBillsCount++;
+            }
+
+            if (isBar) {
+                barBillsCount++;
+                barTotalAmount += bill.total;
+                bill.items.forEach((item) => {
+                    const type = item.type.toLowerCase();
+                    if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                        barPlainSodaQty += item.quantity;
+                    } else if (type.includes("color")) {
+                        barColorSodaQty += item.quantity;
+                    } else if (type.includes("goli")) {
+                        barGoliSodaQty += item.quantity;
+                    }
+                });
+            } else {
+                shopBillsCount++;
+                shopTotalAmount += bill.total;
+                bill.items.forEach((item) => {
+                    const type = item.type.toLowerCase();
+                    if (type.includes("plain") || (type.includes("soda") && !type.includes("color") && !type.includes("goli"))) {
+                        shopPlainSodaQty += item.quantity;
+                    } else if (type.includes("color")) {
+                        shopColorSodaQty += item.quantity;
+                    } else if (type.includes("goli")) {
+                        shopGoliSodaQty += item.quantity;
+                    }
+                });
             }
         });
 
@@ -459,13 +511,22 @@ export function BillsPage() {
         text += `\x1B\x61\x00Date: ${new Date(selectedDate).toLocaleDateString('en-IN')}\n`;
         text += `--------------------------------\n`;
         text += `Total Bills:    ${filteredBills.length}\n`;
-        text += `Shop Bills:     ${shopBillsCount}\n`;
-        text += `Bar Bills:      ${barBillsCount}\n`;
         text += `--------------------------------\n`;
-        text += `Plain Soda:     ${plainSodaQty}\n`;
-        text += `Color Soda:     ${colorSodaQty}\n`;
-        text += `Goli Soda:      ${goliSodaQty}\n`;
+        text += `\x1B\x61\x01* SHOP BILLS SUMMARY *\n\x1B\x61\x00`;
+        text += `Bills Count:    ${shopBillsCount}\n`;
+        text += `Plain Soda:     ${shopPlainSodaQty}\n`;
+        text += `Color Soda:     ${shopColorSodaQty}\n`;
+        text += `Goli Soda:      ${shopGoliSodaQty}\n`;
+        text += `Total Earned:   Rs.${shopTotalAmount}\n`;
         text += `--------------------------------\n`;
+        text += `\x1B\x61\x01* BAR BILLS SUMMARY *\n\x1B\x61\x00`;
+        text += `Bills Count:    ${barBillsCount}\n`;
+        text += `Plain Soda:     ${barPlainSodaQty}\n`;
+        text += `Color Soda:     ${barColorSodaQty}\n`;
+        text += `Goli Soda:      ${barGoliSodaQty}\n`;
+        text += `Total Earned:   Rs.${barTotalAmount}\n`;
+        text += `--------------------------------\n`;
+        text += `\x1B\x61\x01* FINANCIAL SUMMARY *\n\x1B\x61\x00`;
         text += `Total Sales:    Rs.${totalSales}\n`;
         text += `Cash Collected: Rs.${cashCollected}\n`;
         text += `Pending Due:    Rs.${pendingDue}\n`;
