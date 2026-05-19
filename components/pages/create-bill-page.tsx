@@ -8,6 +8,7 @@ import { addBill, Bill, getBills } from "@/lib/bill-service";
 import { addOrUpdateCustomer, getCustomerByPhone, getCustomers, Customer } from "@/lib/customer-service";
 import { getPrices } from "@/lib/price-service";
 import { getSettings } from "@/lib/settings-service";
+import { printToBluetooth } from "@/lib/bluetooth-printer";
 import { Printer, Send, Bluetooth, User, Phone, Plus, Minus, CreditCard, Zap, QrCode, X } from "lucide-react";
 import { CompanyHeader } from "@/components/branding/company-header";
 
@@ -422,53 +423,8 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
         if (!lastBill) return;
 
         try {
-            toast.info("Select your Bluetooth printer...");
+            toast.info("Printing via Bluetooth...");
 
-            // 1. Request Bluetooth device
-            const nav = navigator as any;
-            const device = await nav.bluetooth.requestDevice({
-                filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-                optionalServices: ['e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000fee7-0000-1000-8000-00805f9b34fb'] // Common thermal printer services
-            }).catch(() => {
-                // Fallback for devices without standard services
-                return nav.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000fee7-0000-1000-8000-00805f9b34fb']
-                });
-            });
-
-            if (!device || !device.gatt) {
-                throw new Error("No device selected or GATT not supported");
-            }
-
-            // 2. Connect to GATT Server
-            toast.info("Connecting to printer...");
-            const server = await device.gatt.connect();
-
-            // 3. Get primary service & writable characteristic
-            const services = await server.getPrimaryServices();
-            if (services.length === 0) {
-                throw new Error("No services found on device");
-            }
-
-            let printCharacteristic = null;
-            for (const service of services) {
-                const characteristics = await service.getCharacteristics();
-                for (const char of characteristics) {
-                    if (char.properties.write || char.properties.writeWithoutResponse) {
-                        printCharacteristic = char;
-                        break;
-                    }
-                }
-                if (printCharacteristic) break;
-            }
-
-            if (!printCharacteristic) {
-                throw new Error("Could not find a writable characteristic for this printer");
-            }
-
-            // 4. Prepare text for printing
-            toast.info("Printing...");
             let printText = "\x1B\x40"; // Initialize printer (ESC @)
             printText += "\x1B\x61\x01"; // Center align
             printText += "SPINZ SODA\n";
@@ -503,30 +459,11 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
             printText += "Thank you for your purchase!\n";
             printText += "Visit Again\n\n\n\n";
 
-            // 5. Send data in chunks (BLE has a max packet size)
-            const encoder = new TextEncoder();
-            const data = encoder.encode(printText);
-
-            // Chunk size of 100 bytes is safe for most BLE modules
-            const CHUNK_SIZE = 100;
-            for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-                const chunk = data.slice(i, i + CHUNK_SIZE);
-                await printCharacteristic.writeValue(chunk);
-                // Tiny delay between chunks
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-
+            await printToBluetooth(printText);
             toast.success("Printed successfully via Bluetooth!");
-
-            // Disconnect after printing
-            device.gatt.disconnect();
-
         } catch (error: any) {
-            console.error("Bluetooth print error:", error);
-            // Some browsers throw a specific error if user cancels
-            if (error.name !== "NotFoundError") {
-                toast.error(`Bluetooth Error: ${error.message}`);
-            }
+            console.error(error);
+            toast.error("Printer not connected! Please connect it in the sidebar first.");
         }
     };
 

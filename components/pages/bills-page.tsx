@@ -11,6 +11,7 @@ import { CompanyHeader } from "@/components/branding/company-header";
 // ✅ Import correct Bill functions
 import { getBills, deleteBill, exportBillsToCSV, updateBill, Bill } from "../../lib/bill-service";
 import { getSettings } from "../../lib/settings-service";
+import { printToBluetooth } from "@/lib/bluetooth-printer";
 
 /* -----------------------------------------------
  🧾 BILLS PAGE COMPONENT
@@ -249,25 +250,6 @@ export function BillsPage() {
   /* 🔵 Bluetooth Print */
   const handleBluetoothPrint = async (bill: Bill) => {
     try {
-        const nav = navigator as any;
-        const device = await nav.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000fee7-0000-1000-8000-00805f9b34fb']
-        });
-
-        const server = await device.gatt.connect();
-        const services = await server.getPrimaryServices();
-        let char = null;
-        for (const s of services) {
-            const chars = await s.getCharacteristics();
-            for (const c of chars) {
-                if (c.properties.write || c.properties.writeWithoutResponse) { char = c; break; }
-            }
-            if (char) break;
-        }
-
-        if (!char) throw new Error("No characteristic");
-
         let text = "\x1B\x40\x1B\x61\x01SPINZ SODA\nRefreshing Every Moment\n--------------------------------\n";
         text += `\x1B\x61\x00Bill: ${bill.billNumber}\nCust/Shop: ${bill.customerName}\n--------------------------------\n`;
         bill.items.forEach(i => {
@@ -278,16 +260,10 @@ export function BillsPage() {
         if (bill.advanceAmount && bill.advanceAmount > 0) text += `Advance: Rs.${bill.advanceAmount}\n`;
         text += "\n\x1B\x61\x01Visit Again! ✨\n\n\n\n\n";
 
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        for (let i = 0; i < data.length; i += 100) {
-            await char.writeValue(data.slice(i, i + 100));
-            await new Promise(r => setTimeout(r, 50));
-        }
+        await printToBluetooth(text);
         toast.success("Printed!");
-        device.gatt.disconnect();
     } catch (e: any) {
-        toast.error("Bluetooth Error");
+        toast.error("Printer not connected! Please connect it in the sidebar first.");
     }
   };
 
@@ -418,25 +394,6 @@ export function BillsPage() {
   /* 🔵 Bluetooth Daily Collection Print */
   const handleBluetoothPrintDailyCollection = async () => {
     try {
-        const nav = navigator as any;
-        const device = await nav.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000fee7-0000-1000-8000-00805f9b34fb']
-        });
-
-        const server = await device.gatt.connect();
-        const services = await server.getPrimaryServices();
-        let char = null;
-        for (const s of services) {
-            const chars = await s.getCharacteristics();
-            for (const c of chars) {
-                if (c.properties.write || c.properties.writeWithoutResponse) { char = c; break; }
-            }
-            if (char) break;
-        }
-
-        if (!char) throw new Error("No characteristic");
-
         // Calculations
         let totalSales = 0;
         let cashCollected = 0;
@@ -533,16 +490,10 @@ export function BillsPage() {
         text += `--------------------------------\n`;
         text += `\x1B\x61\x01Report Generated:\n${new Date().toLocaleTimeString('en-IN')}\n\n\n\n\n`;
 
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        for (let i = 0; i < data.length; i += 100) {
-            await char.writeValue(data.slice(i, i + 100));
-            await new Promise(r => setTimeout(r, 50));
-        }
+        await printToBluetooth(text);
         toast.success("Printed Daily Collection successfully via Bluetooth!");
-        device.gatt.disconnect();
     } catch (e: any) {
-        toast.error("Bluetooth Error");
+        toast.error("Printer not connected! Please connect it in the sidebar first.");
     }
   };
 

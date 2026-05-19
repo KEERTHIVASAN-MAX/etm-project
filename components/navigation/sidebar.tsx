@@ -10,7 +10,10 @@ import { LogOut } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
 import { Users2 } from "lucide-react";
 import { CreditCard } from "lucide-react";
-import { Wallet } from "lucide-react";
+import { Wallet, Printer, Bluetooth } from "lucide-react";
+import { connectBluetoothPrinter } from "@/lib/bluetooth-printer";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   role: "owner" | "staff";
@@ -28,6 +31,17 @@ export function Sidebar({
   onLogout,
 }: SidebarProps) {
   const isActive = (page: string) => currentPage === page;
+  const [printerConnected, setPrinterConnected] = useState(false);
+
+  const handleConnectPrinter = async () => {
+    try {
+      await connectBluetoothPrinter();
+      setPrinterConnected(true);
+      toast.success("Printer connected successfully!");
+    } catch (error) {
+      toast.error("Failed to connect printer");
+    }
+  };
 
   const navItems = [
     { id: "home", label: "Dashboard", icon: Home, show: true },
@@ -103,8 +117,15 @@ export function Sidebar({
         )}
       </nav>
 
-      {/* Logout - Always Visible */}
-      <div className="p-4 border-t border-white/20 flex-shrink-0">
+      {/* Printer & Logout - Always Visible */}
+      <div className="p-4 border-t border-white/20 flex-shrink-0 space-y-2">
+        <Button
+          onClick={handleConnectPrinter}
+          className={`w-full flex items-center justify-center gap-2 font-semibold ${printerConnected ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+        >
+          {printerConnected ? <Printer size={18} /> : <Bluetooth size={18} />}
+          {printerConnected ? 'Printer Ready' : 'Connect Printer'}
+        </Button>
         <Button
           onClick={onLogout}
           className="w-full flex items-center gap-2 bg-green-500 hover:bg-green-400 text-primary-dark font-semibold"
