@@ -41,7 +41,10 @@ export async function addBill(billData: Omit<Bill, "id">): Promise<Bill> {
         const creatorId = localStorage.getItem("uid") || "unknown";
         const creatorName = localStorage.getItem("userName") || "System";
         
-        const docRef = await addDoc(collection(db, "bills"), {
+        const { setDoc } = await import("firebase/firestore");
+        const docRef = doc(collection(db, "bills"));
+        
+        const completeBill = {
             ...billData,
             billNumber: generatedBillNumber,
             createdAt: new Date().toISOString(),
@@ -49,15 +52,15 @@ export async function addBill(billData: Omit<Bill, "id">): Promise<Bill> {
             ownerId: billData.ownerId || localStorage.getItem("ownerId") || "default",
             createdBy: creatorId,
             createdByName: creatorName,
-        });
+        };
+
+        // Do NOT await setDoc. This allows immediate offline creation 
+        // while Firestore queues the sync for later.
+        setDoc(docRef, completeBill).catch(err => console.error("Offline sync pending:", err));
 
         return {
             id: docRef.id,
-            ...billData,
-            billNumber: generatedBillNumber,
-            createdAt: new Date().toISOString(),
-            createdBy: creatorId,
-            createdByName: creatorName,
+            ...completeBill,
         };
     } catch (error) {
         console.error("Error adding bill:", error);

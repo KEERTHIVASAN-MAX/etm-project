@@ -30,13 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!authResolved) {
         console.warn("⚠️ Firebase Auth timed out. Falling back to localStorage.");
         const storedRole = localStorage.getItem("role");
-        if (storedRole === "staff") {
-          const storedUid = localStorage.getItem("uid");
-          const storedName = localStorage.getItem("userName");
+        const storedUid = localStorage.getItem("uid");
+        const storedName = localStorage.getItem("userName");
+        
+        if (storedRole === "staff" || storedRole === "owner") {
           setUid(storedUid);
-          setRole("staff");
+          setRole(storedRole as "owner" | "staff");
           setUserName(storedName);
-          setUser({ uid: storedUid, role: "staff" });
+          setUser({ uid: storedUid, role: storedRole });
         }
         setLoading(false);
       }
@@ -58,16 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("userName", firebaseUser.displayName || "Owner");
       } else {
         const storedRole = localStorage.getItem("role");
+        const storedUid = localStorage.getItem("uid");
+        const storedName = localStorage.getItem("userName");
 
-        if (storedRole === "staff") {
-          const storedUid = localStorage.getItem("uid");
-          const storedName = localStorage.getItem("userName");
-
-          console.log("✅ Staff session restored from localStorage");
+        if (storedRole === "staff" || storedRole === "owner") {
+          console.log(`✅ ${storedRole} session restored from localStorage (Offline Mode)`);
           setUid(storedUid);
-          setRole("staff");
+          setRole(storedRole as "owner" | "staff");
           setUserName(storedName);
-          setUser({ uid: storedUid, role: "staff" });
+          setUser({ uid: storedUid, role: storedRole });
         } else {
           console.log("❌ No active session");
           setUser(null);
