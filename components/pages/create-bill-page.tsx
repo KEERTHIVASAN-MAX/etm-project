@@ -8,7 +8,7 @@ import { addBill, Bill, getBills } from "@/lib/bill-service";
 import { addOrUpdateCustomer, getCustomerByPhone, getCustomers, Customer } from "@/lib/customer-service";
 import { getPrices } from "@/lib/price-service";
 import { getSettings } from "@/lib/settings-service";
-import { printToBluetooth } from "@/lib/bluetooth-printer";
+import { printToBluetooth, connectBluetoothPrinter, getConnectedPrinter } from "@/lib/bluetooth-printer";
 import { Printer, Send, Bluetooth, User, Phone, Plus, Minus, CreditCard, Zap, QrCode, X } from "lucide-react";
 import { CompanyHeader } from "@/components/branding/company-header";
 
@@ -32,6 +32,7 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
     const [selectedQr, setSelectedQr] = useState<"1" | "2" | "both" | "none">("1");
     const [showQrOptions, setShowQrOptions] = useState(false);
     const [showQrModal, setShowQrModal] = useState(false);
+    const [printerConnected, setPrinterConnected] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
     const [prices, setPrices] = useState({
@@ -42,6 +43,9 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
 
     // Fetch prices on mount
     useEffect(() => {
+        const { char: activeChar } = getConnectedPrinter();
+        setPrinterConnected(!!activeChar);
+
         const fetchPrices = async () => {
             try {
                 const fetchedPrices = await getPrices();
@@ -275,6 +279,16 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
         }
     };
 
+    const handleConnectPrinter = async () => {
+        try {
+            await connectBluetoothPrinter();
+            setPrinterConnected(true);
+            toast.success("Printer connected successfully!");
+        } catch (error) {
+            toast.error("Failed to connect printer");
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         processSubmission();
@@ -482,11 +496,25 @@ export function CreateBillPage({ role }: CreateBillPageProps) {
         <div className="max-w-2xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
             <CompanyHeader />
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Create Bill</h1>
                     <p className="text-sm text-foreground/60 mt-1">Generate new bills and record payments</p>
                 </div>
+                {role === "staff" && (
+                    <Button
+                        type="button"
+                        onClick={handleConnectPrinter}
+                        className={`flex items-center gap-2 font-semibold px-4 py-2 rounded-xl transition-all shadow-sm ${
+                            printerConnected 
+                                ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200'
+                        }`}
+                    >
+                        {printerConnected ? <Printer size={16} /> : <Bluetooth size={16} />}
+                        {printerConnected ? 'Printer Ready' : 'Connect Printer'}
+                    </Button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

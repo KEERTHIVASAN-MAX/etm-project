@@ -11,7 +11,7 @@ import { ShoppingCart } from "lucide-react";
 import { Users2 } from "lucide-react";
 import { CreditCard } from "lucide-react";
 import { Wallet, Printer, Bluetooth } from "lucide-react";
-import { connectBluetoothPrinter } from "@/lib/bluetooth-printer";
+import { connectBluetoothPrinter, getConnectedPrinter } from "@/lib/bluetooth-printer";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 
@@ -32,6 +32,11 @@ export function Sidebar({
 }: SidebarProps) {
   const isActive = (page: string) => currentPage === page;
   const [printerConnected, setPrinterConnected] = useState(false);
+
+  useEffect(() => {
+    const { char } = getConnectedPrinter();
+    setPrinterConnected(!!char);
+  }, []);
 
   const handleConnectPrinter = async () => {
     try {

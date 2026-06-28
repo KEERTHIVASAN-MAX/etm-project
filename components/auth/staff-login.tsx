@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Phone, Lock } from "lucide-react"
+import { Phone, Lock, Printer, Bluetooth } from "lucide-react"
 import { toast } from "sonner"
 import { verifyStaffCredentials } from "../../lib/staff-service"
+import { connectBluetoothPrinter, getConnectedPrinter } from "../../lib/bluetooth-printer"
 
 interface StaffLoginProps {
   onBack: () => void
@@ -17,6 +18,22 @@ export function StaffLogin({ onBack }: StaffLoginProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [printerConnected, setPrinterConnected] = useState(false)
+
+  useEffect(() => {
+    const { char } = getConnectedPrinter()
+    setPrinterConnected(!!char)
+  }, [])
+
+  const handleConnectPrinter = async () => {
+    try {
+      await connectBluetoothPrinter()
+      setPrinterConnected(true)
+      toast.success("Printer connected successfully!")
+    } catch (error) {
+      toast.error("Failed to connect printer")
+    }
+  }
 
   const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,6 +125,22 @@ export function StaffLogin({ onBack }: StaffLoginProps) {
           {loading ? "Logging in..." : "Login"}
         </Button>
       </form>
+
+      <div className="border-t border-border pt-4 mt-4 space-y-2">
+        <p className="text-xs text-muted-foreground text-center">Need to connect a printer?</p>
+        <Button
+          type="button"
+          onClick={handleConnectPrinter}
+          className={`w-full flex items-center justify-center gap-2 font-semibold h-12 rounded-xl transition-all ${
+            printerConnected
+              ? "bg-blue-600 hover:bg-blue-500 text-white"
+              : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          }`}
+        >
+          {printerConnected ? <Printer size={18} /> : <Bluetooth size={18} />}
+          {printerConnected ? "Printer Ready" : "Connect Printer"}
+        </Button>
+      </div>
     </Card>
   )
 }

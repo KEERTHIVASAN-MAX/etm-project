@@ -94,17 +94,17 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
           <h2 className="text-3xl font-extrabold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
             Reset Password
           </h2>
-          <p className="text-center text-sm text-muted-foreground mb-8">
+          <p className="text-center text-sm text-blue-200 mb-8">
             We'll send you instructions securely
           </p>
 
           <form onSubmit={handleForgotPassword} className="space-y-5">
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-indigo-400 transition-colors duration-300" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300 group-focus-within:text-indigo-400 transition-colors duration-300" />
               <Input
                 type="email"
                 placeholder="Owner Email"
-                className="pl-12 h-14 bg-black/20 border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/20 rounded-2xl transition-all duration-300"
+                className="pl-12 h-14 bg-black/20 border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/20 rounded-2xl transition-all duration-300 text-white placeholder:text-white/40"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 required
@@ -119,7 +119,7 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
             <Button
               variant="ghost"
               type="button"
-              className="w-full h-12 rounded-2xl hover:bg-white/5 transition-all text-muted-foreground hover:text-foreground"
+              className="w-full h-12 rounded-2xl hover:bg-white/5 transition-all text-blue-200 hover:text-white"
               onClick={() => setShowForgotPassword(false)}
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to login
@@ -138,7 +138,7 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
       <div className="relative z-10">
         <div className="flex items-center mb-8">
           {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 rounded-full hover:bg-white/10 transition-colors">
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 rounded-full hover:bg-white/10 text-white hover:text-white transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
@@ -146,7 +146,7 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
             <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
               Welcome Back
             </h2>
-            <p className="text-sm text-muted-foreground mt-1 font-medium">
+            <p className="text-sm text-blue-200 mt-1 font-medium">
               Secure Owner Dashboard Access
             </p>
           </div>
@@ -154,11 +154,11 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
 
         <form onSubmit={handleEmailLogin} className="space-y-5">
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors duration-300 text-muted-foreground" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300 group-focus-within:text-cyan-400 transition-colors duration-300" />
             <Input
               type="email"
               placeholder="Owner Email"
-              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 placeholder:text-muted-foreground/50"
+              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 text-white placeholder:text-white/40"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -166,11 +166,11 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
           </div>
 
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors duration-300 text-muted-foreground" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300 group-focus-within:text-cyan-400 transition-colors duration-300" />
             <Input
               type="password"
               placeholder="Password"
-              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 placeholder:text-muted-foreground/50"
+              className="pl-12 h-14 bg-black/20 border-white/10 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-2xl transition-all duration-300 text-white placeholder:text-white/40"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -194,7 +194,7 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
 
           <div className="relative my-6 flex items-center py-2">
             <div className="flex-grow border-t border-white/10"></div>
-            <span className="flex-shrink-0 mx-4 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            <span className="flex-shrink-0 mx-4 text-xs font-medium text-blue-200 uppercase tracking-widest">
               Or Connect With
             </span>
             <div className="flex-grow border-t border-white/10"></div>
@@ -203,7 +203,7 @@ export function OwnerLogin({ onBack }: OwnerLoginProps) {
           <Button
             type="button"
             variant="outline"
-            className="w-full h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-sm font-medium text-[15px]"
+            className="w-full h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-sm font-medium text-[15px] text-white"
             onClick={handleGoogleLogin}
             disabled={loading}
           >

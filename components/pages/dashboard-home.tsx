@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { getBills } from "../../lib/bill-service";
 import { getCustomers } from "../../lib/customer-service";
 import { getStaffMembers } from "../../lib/staff-service";
-
 import { useAuth } from "@/lib/auth-context";
+import { Printer, Bluetooth } from "lucide-react";
+import { connectBluetoothPrinter, getConnectedPrinter } from "../../lib/bluetooth-printer";
 
 interface DashboardHomeProps {
     role: "owner" | "staff";
@@ -23,8 +24,12 @@ export function DashboardHome({ role }: DashboardHomeProps) {
     const [pendingBillsCount, setPendingBillsCount] = useState(0);
     const [pendingAmountTotal, setPendingAmountTotal] = useState(0);
     const [staffCollectionCount, setStaffCollectionCount] = useState(0);
+    const [printerConnected, setPrinterConnected] = useState(false);
 
     useEffect(() => {
+        const { char } = getConnectedPrinter();
+        setPrinterConnected(!!char);
+
         const loadData = async () => {
             // Load bills from Firebase
             const allBills = await getBills();
@@ -70,13 +75,38 @@ export function DashboardHome({ role }: DashboardHomeProps) {
         loadData();
     }, [role, uid]);
 
+    const handleConnectPrinter = async () => {
+        try {
+            await connectBluetoothPrinter();
+            setPrinterConnected(true);
+        } catch (error) {
+            console.error("Failed to connect printer:", error);
+        }
+    };
+
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                <p className="text-sm text-foreground/60 mt-1">
-                    Welcome back! Role: {role.toUpperCase()}
-                </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+                    <p className="text-sm text-foreground/60 mt-1">
+                        Welcome back! Role: {role.toUpperCase()}
+                    </p>
+                </div>
+                {role === "staff" && (
+                    <Button
+                        type="button"
+                        onClick={handleConnectPrinter}
+                        className={`flex items-center gap-2 font-semibold px-4 py-2 rounded-xl transition-all shadow-sm ${
+                            printerConnected 
+                                ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200'
+                        }`}
+                    >
+                        {printerConnected ? <Printer size={16} /> : <Bluetooth size={16} />}
+                        {printerConnected ? 'Printer Ready' : 'Connect Printer'}
+                    </Button>
+                )}
             </div>
 
             {/* 🔥 NEW: Pending Collections Section for Both Staff & Owner */}
