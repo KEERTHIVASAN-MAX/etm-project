@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence, initializeAuth } from "firebase/auth";
-import { getFirestore, enableMultiTabIndexedDbPersistence, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getFirestore, enableMultiTabIndexedDbPersistence, initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -23,7 +23,6 @@ if (!firebaseConfig.apiKey) {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 let auth = getAuth(app);
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 // Enable Offline Persistence for Firestore using modern v10+ API
 let db;
