@@ -23,25 +23,20 @@ if (!firebaseConfig.apiKey) {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 let auth = getAuth(app);
-let db = getFirestore(app);
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
-// Enable Offline Persistence for Firestore
+// Enable Offline Persistence for Firestore using modern v10+ API
+let db;
 if (typeof window !== "undefined") {
-    try {
-        enableMultiTabIndexedDbPersistence(db).catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.warn("Multiple tabs open, offline persistence can only be enabled in one tab at a time.");
-            } else if (err.code === 'unimplemented') {
-                console.warn("The current browser does not support all of the features required to enable offline persistence.");
-            }
-        });
-    } catch (e) {
-        console.error("Error enabling offline persistence", e);
-    }
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
 
     setPersistence(auth, browserLocalPersistence).catch((error) => {
         console.error("Failed to set auth persistence:", error);
     });
+} else {
+    db = getFirestore(app);
 }
 
 let analytics;
